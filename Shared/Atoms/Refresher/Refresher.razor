@@ -1,0 +1,37 @@
+﻿@using System.Threading
+
+@ChildContent
+
+@code {
+    
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private CancellationTokenSource _tokenSource;
+
+    protected override void OnInitialized()
+    {
+        _tokenSource = new CancellationTokenSource();
+    }
+
+    public void Start()
+    {
+        _tokenSource.TryReset();
+        
+        var cancellationToken = _tokenSource.Token;
+        Task.Run(() => Loop(cancellationToken), cancellationToken);
+    }
+
+    public void Stop()
+    {
+        _tokenSource.Cancel();
+    }
+
+    private async Task Loop(CancellationToken cancellationToken)
+    {
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+}

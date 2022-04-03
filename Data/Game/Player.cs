@@ -1,4 +1,4 @@
 ﻿namespace HotColour.Data.Game
 {
-    public record Player(string Id, string Name, string Avatar);
+    public record Player(string Id, string Name, string Avatar, bool IsDead = false);
 }

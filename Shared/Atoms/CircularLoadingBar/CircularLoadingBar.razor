@@ -1,0 +1,27 @@
+﻿<svg width="auto" height="auto" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="50%" cy="50%" r="@Radius" class="inner-circle" stroke-dasharray="@_dashArray" stroke-dashoffset="0"></circle>
+    <circle cx="50%" cy="50%" r="@Radius" class="outer-circle" stroke-dasharray="@_dashArray" stroke-dashoffset="@CalculateDashArray()"></circle>
+</svg>
+
+@code {
+    
+    private float _dashArray;
+    
+    protected override void OnParametersSet()
+    {
+        _dashArray = Radius * 6.282352941176471f;
+        base.OnParametersSet();
+    }
+
+    [Parameter]
+    public float Radius { get; set; } = 255;
+    
+    [Parameter]
+    public float CurrentPercentage { get; set; } = 70;
+    
+    private float CalculateDashArray()
+    {
+        var relativeToMaxDashArray = CurrentPercentage / 100f * _dashArray;
+        return relativeToMaxDashArray;
+    }
+}

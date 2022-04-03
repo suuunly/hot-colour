@@ -37,7 +37,7 @@ namespace HotColour.Data.GameLobby
         public bool TryGetSession(string sessionId, out GameSession session)
         {
             session = GetSession(sessionId);
-            return session == null;
+            return session != null;
         }
     }
 }

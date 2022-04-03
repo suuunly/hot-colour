@@ -1,17 +1,42 @@
 ﻿@page "/session/{SessionId}"
+@using HotColour.Data.Game
 @layout LobbyLayout
 
-<div class="map">
+@if (!_game.Successful)
+{
+    <p>@_game.Error</p>
+    return;
+}
+
+<div class="backdrop" style="background-color: @TargetColour"/>
+<div class="session-id-box">
+    <p class="session-id-title">Game Code:</p>
+    <p class="session-id-code">@SessionId</p>
+</div>
+<div class="container">
+    <div class="free-form timer">
+        <Refresher @ref="_refresher">
+            <CircularLoadingBar Radius="255" CurrentPercentage="@CurrentPercentageLeft()"/>
+        </Refresher>
+        
+    </div>
     <div id="picker" class="free-form wheel"></div>
-        
-    @for (var i = 0; i < _players.Count; i++)
+
+    @for (var i = 0; i < _game.Data.Players.Count; i++)
     {
-        var player = _players[i];
+        var player = _game.Data.Players[i];
         
-        <div class="free-form" >
+        <div class="free-form">
             <div style="@GetTransformStyle(i)">
-                <PlayerInstance Player="@player"/>    
+                <PlayerInstance Player="@player" PlayerTurn="@IsPlayersTurn(player.Id)"/>
             </div>
+        </div>
+    }
+
+    @if (_game.Data.GameState == GameState.WaitingForPlayers)
+    {
+        <div class="free-form start-button">
+            <ImageButton OnClick="StartGame" Text="Start" Src="/media/start-button.png"/>
         </div>
 
     }

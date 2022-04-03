@@ -8,8 +8,8 @@
 
 img:hover {
     transform: rotate(1deg) scale(1.1);
-    -webkit-filter: drop-shadow(5px 0px 0 #fff) drop-shadow(-5px 0px 0 #fff) drop-shadow(0px 5px 0 #fff) drop-shadow(0px -5px 0 #fff);
-    filter: drop-shadow(5px 0px 0 #fff) drop-shadow(-5px 0px 0 #fff) drop-shadow(0px 5px 0 #fff) drop-shadow(0px -5px 0 #fff);
+    -webkit-filter: drop-shadow(5px 0px 0 #e6e5e5) drop-shadow(-5px 0px 0 #e6e5e5) drop-shadow(0px 5px 0 #e6e5e5) drop-shadow(0px -5px 0 #e6e5e5);
+    filter: drop-shadow(5px 0px 0 #e6e5e5) drop-shadow(-5px 0px 0 #e6e5e5) drop-shadow(0px 5px 0 #e6e5e5) drop-shadow(0px -5px 0 #e6e5e5);
 }
 
 img:active {

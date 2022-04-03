@@ -3,6 +3,16 @@
     width: 100vw;
     height: 100vh;
 }
+
+.backdrop {
+    transition: background-color 0.2s;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+}
+
 .free-form {
     position: absolute;
     top: 50%;
@@ -12,4 +22,31 @@
 
 .wheel {
     z-index: 1;
+}
+
+.start-button {
+    z-index: 2;
+}
+
+.session-id-box {
+    position: absolute;
+    background-color: #000;
+    color: #fff;
+    top: 1rem;
+    left: 1rem;
+    border-radius: 2%;
+}
+
+.session-id-title {
+    margin: 0.5rem 1rem;
+    font-weight: bold;
+}
+
+.session-id-code {
+    margin: 0 0.5rem 0.5rem 0.5rem;
+    text-decoration: underline;
+}
+
+.timer {
+    z-index: 0;
 }

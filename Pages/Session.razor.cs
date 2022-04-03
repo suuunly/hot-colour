@@ -1,69 +1,108 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using HotColour.Data.Game;
+using HotColour.Data.Response;
 using HotColour.Services;
 using HotColour.Shared;
+using HotColour.Shared.Atoms.Refresher;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
 namespace HotColour.Pages
 {
-    public partial class Session
+    public partial class Session : IDisposable
     {
-        private const float playerInstanceYOffset = 20.0f;
+        private const float PlayerInstanceYOffset = 20.0f;
+        private DotNetObjectReference<Session>? _dotnetHelper;
+
+        private DataResponse<GameSessionData> _game;
+        private IJSObjectReference _module;
+
+        private Refresher _refresher;
         
         [Inject] private IJSRuntime Js { get; set; }
-        IJSObjectReference _module;
-        
-        [Parameter]
-        public string SessionId { get; set; }
+
+        [Parameter] public string SessionId { get; set; } = string.Empty;
 
         [CascadingParameter] private SessionManager Manager { get; set; }
         [Inject] private SessionHub SessionHub { get; set; }
 
-        private List<Player> _players = new()
+        [Inject] private NavigationManager NavigationManager { get; set; }
+
+        private string TargetColour
         {
-            new Player("1", "Bob", "media/avatars/avatar-1.png"),
-            new Player("1", "Miller", "media/avatars/avatar-2.png"),
-            new Player("1", "Jennifer", "media/avatars/avatar-3.png"),
-            new Player("1", "Mitchell", "media/avatars/avatar-5.png"),
-            new Player("1", "Sarah", "media/avatars/avatar-6.png"),
-            new Player("1", "Benjamin", "media/avatars/avatar-2.png"),
-            new Player("1", "Flipper", "media/avatars/avatar-4.png"),
-            new Player("1", "Doofus", "media/avatars/avatar-9.png"),
-            new Player("1", "Limber", "media/avatars/avatar-8.png"),
-            new Player("1", "Snorkle", "media/avatars/avatar-7.png"),
-        };
+            get
+            {
+                var (h, s, l) = _game.Data.TargetColour;
+                return $"hsl({h},{s}%,{l}%)";
+            }
+        }
 
         protected override async Task OnAfterRenderAsync(bool firstRender)
         {
             if (firstRender)
             {
                 _module = await Js.InvokeAsync<IJSObjectReference>("import", "/js/ColourPicker.js");
-                await _module.InvokeVoidAsync("InitializeColourPicker");
+                _dotnetHelper = DotNetObjectReference.Create(this);
+                await _module.InvokeVoidAsync("InitializeColourPicker", _dotnetHelper);
             }
-            
+
             await base.OnAfterRenderAsync(firstRender);
         }
 
 
         protected override void OnInitialized()
         {
-            // _players = SessionHub.GetPlayers(SessionId);
+            _game = SessionHub.GameSessionData(SessionId);
+            if (!_game.Successful) NavigationManager.NavigateTo("/");
+
             Manager.OnJoined(RefreshPlayerList);
             Manager.OnLeft(RefreshPlayerList);
+            Manager.OnStarted(OnStarted);
+            Manager.OnGuessedColour(RefreshPlayerList);
+            Manager.OnRoundEnded(RefreshPlayerList);
+        }
+
+        private float CurrentPercentageLeft()
+        {
+            var startTime = _game.Data.TimeWhenRoundStarted;
+            var endTime = _game.Data.TimeWhenRoundEnds;
+            var currentTime = DateTime.Now;
+            
+            var totalTime = (float)(endTime - startTime).TotalSeconds;
+            var elapsedTime = (float)(currentTime - startTime).TotalSeconds;
+            
+            return elapsedTime * 100f / totalTime;
+        }
+
+        private void OnRoundEnded()
+        {
+            RefreshPlayerList();
+            _refresher.Stop();
+            _refresher.Start();
+        }
+        
+        private void OnStarted()
+        {
+            RefreshPlayerList();
+            _refresher.Start();
         }
 
         private void RefreshPlayerList()
         {
-            // _players = SessionHub.GetPlayers(SessionId);
+            _game = SessionHub.GameSessionData(SessionId);
+            if (!_game.Successful)
+            {
+                NavigationManager.NavigateTo("/");
+            }
             StateHasChanged();
         }
 
         private string GetTransformStyle(int index)
         {
-            var angleBetweenPoints = 360f / _players.Count;
+            var angleBetweenPoints = 360f / _game.Data.Players.Count;
 
             var angle = angleBetweenPoints * (index + 1);
             var angleRad = Math.PI * angle / 180f;
@@ -74,9 +113,39 @@ namespace HotColour.Pages
             x *= 270f;
             y *= 270f;
 
-            y += playerInstanceYOffset;
-            
+            y += PlayerInstanceYOffset;
+
             return $"transform: translate({x}px, {y}px)";
+        }
+
+        private Task StartGame()
+        {
+            return SessionHub.StartGame(SessionId);
+        }
+
+        private bool IsPlayersTurn(string playerId)
+        {
+            return _game.Data.PlayerIdsTurn == playerId;
+        }
+
+        // private Task SessionLoop()
+        // {
+        //     
+        // }
+
+        [JSInvokable]
+        public async Task OnSelectedColour(int h, int s, int l)
+        {
+            var result = await SessionHub.GuessColour(SessionId, new HueColour(h, s, l));
+            if (result.Error == TypeOfFailure.CouldNotFindGame)
+            {
+                NavigationManager.NavigateTo("/");
+            }
+        }
+
+        public void Dispose()
+        {
+            _dotnetHelper?.Dispose();
         }
     }
 }

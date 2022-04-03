@@ -1,0 +1,20 @@
+﻿svg {
+    transform: rotate(-90deg);
+    overflow: visible;
+    transition: stroke-dashoffset 0.2s;
+}
+
+circle {
+    fill: none;
+    stroke-linecap: round;
+}
+
+.inner-circle {
+    stroke: #212121;
+    stroke-width: 12;
+}
+
+.outer-circle {
+    stroke: #e6e5e5;
+    stroke-width: 14;
+}

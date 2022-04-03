@@ -1,13 +1,20 @@
 ﻿@using HotColour.Data.Game
 
-<div class="container">
-    <Avatar Selectable="false" Src="@Player?.Avatar"/>
-    <p>@Player?.Name</p>    
+<div class="container @SelectedStyle">
+    <div class="avatar @DeathStyle">
+        <Avatar Selectable="false" Src="@Player?.Avatar"/>    
+    </div>
+    <p>@Player?.Name</p>
 </div>
 
 @code {
 
     [Parameter]
-    public Player? Player { get; set; } = null;
+    public bool PlayerTurn { get; set; }
+    
+    [Parameter]
+    public Player? Player { get; set; }
 
+    private string SelectedStyle => PlayerTurn && Player is {IsDead: false} ? "selected" : "";
+    private string DeathStyle => Player is {IsDead: true} ? "dead" : "";
 }

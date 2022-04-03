@@ -28,12 +28,27 @@ namespace HotColour.Shared
 
         public void OnJoined(Action callback)
         {
-            _sessionConnection.On(SessionStates.JoinedGame, callback);
+            _sessionConnection.On(SessionCallbacks.JoinedGame, callback);
         }
 
         public void OnLeft(Action callback)
         {
-            _sessionConnection.On(SessionStates.LeftGame, callback);
+            _sessionConnection.On(SessionCallbacks.LeftGame, callback);
+        }        
+        
+        public void OnStarted(Action callback)
+        {
+            _sessionConnection.On(SessionCallbacks.StartedGame, callback);
+        }
+        
+        public void OnGuessedColour(Action callback)
+        {
+            _sessionConnection.On(SessionCallbacks.GuessedColour, callback);
+        }
+        
+        public void OnRoundEnded(Action callback)
+        {
+            _sessionConnection.On(SessionCallbacks.RoundEnded, callback);
         }
     }
 }

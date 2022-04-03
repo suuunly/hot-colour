@@ -1,0 +1,13 @@
+﻿@using HotColour.Data.Game
+
+<div class="container">
+    <Avatar Selectable="false" Src="@Player?.Avatar"/>
+    <p>@Player?.Name</p>    
+</div>
+
+@code {
+
+    [Parameter]
+    public Player? Player { get; set; } = null;
+
+}

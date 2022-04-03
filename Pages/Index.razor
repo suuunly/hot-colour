@@ -1,9 +1,60 @@
-﻿@page "/"
+﻿@layout LobbyLayout
+@page "/"
+@using HotColour.Services
+@inject SessionHub _sessionHub
+@inject NavigationManager _navigationManager
 
-<PageTitle>Index</PageTitle>
 
-<h1>Hello, world!</h1>
+<PageTitle>Colour Picker</PageTitle>
 
-Welcome to your new app.
+<img class="title" src="media/Title.png"/>
+<ImageButton Text="Host" OnClick="HostGame" Src="media/host-button.png"></ImageButton>
+<ImageButton Text="Join" OnClick="OpenPopUp" Src="media/join-button.png"></ImageButton>
 
-<SurveyPrompt Title="How is Blazor working for you?" />
+<div class="popup" hidden="@(!_showPopup)" onclick="@ClosePopUp">
+    <div class="popup-content" onclick="event.stopPropagation()">
+        <ImageTextInput OnEnter="@JoinGame" Placeholder="Game Session Code" Src="media/code-input-field.png " OnTextChanged="@OnSessionIdTextChanged"/>
+    </div>
+</div>
+
+
+@code {
+
+    private string _sessionId = string.Empty;
+    private bool _showPopup;
+    
+    private async Task HostGame()
+    {
+        var result = _sessionHub.HostGame();
+        if (result.Successful)
+        {
+            _navigationManager.NavigateTo($"/join/{result.Data.SessionId}");    
+        }
+    }
+
+    private void OpenPopUp()
+    {
+        _showPopup = true;
+    }   
+    
+    private void ClosePopUp()
+    {
+        _showPopup = false;
+    }
+    
+    private void JoinGame()
+    {
+        if (_sessionId == string.Empty)
+        {
+            return;
+        }
+        
+        _navigationManager.NavigateTo($"/join/{_sessionId}");
+    }
+
+    private void OnSessionIdTextChanged(string value)
+    {
+        _sessionId = value;
+    }
+    
+}

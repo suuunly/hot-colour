@@ -1,0 +1,24 @@
+﻿img {
+    display: flex;
+    width: 19%;
+
+}
+
+.clickable {
+    transition: transform 0.2s;
+    cursor: pointer;
+}
+
+.clickable:hover {
+    transform: scale(1.2);
+    cursor: pointer;
+}
+
+.clickable:active {
+    transform: scale(1.1);
+    cursor: pointer;
+}
+
+.selected {
+    transform: scale(1.2);
+}

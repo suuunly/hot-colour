@@ -1,0 +1,20 @@
+﻿<div>
+    <button onclick="@Click">
+        @ChildContent
+    </button>
+</div>
+
+@code {
+
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+
+    [Parameter]
+    public EventCallback OnClick { get; set; }
+
+    private void Click()
+    {
+        OnClick.InvokeAsync();
+    }
+    
+}

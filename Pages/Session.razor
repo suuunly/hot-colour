@@ -1,0 +1,18 @@
+﻿@page "/session/{SessionId}"
+@layout LobbyLayout
+
+<div class="map">
+    <div id="picker" class="free-form wheel"></div>
+        
+    @for (var i = 0; i < _players.Count; i++)
+    {
+        var player = _players[i];
+        
+        <div class="free-form" >
+            <div style="@GetTransformStyle(i)">
+                <PlayerInstance Player="@player"/>    
+            </div>
+        </div>
+
+    }
+</div>

@@ -1,0 +1,16 @@
+﻿<div class="container">
+    <img src="@Src"/>
+    <div class="inner-container">
+        @ChildContent
+    </div>
+</div>
+
+@code {
+
+    [Parameter]
+    public string Src { get; set; }
+    
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+
+}

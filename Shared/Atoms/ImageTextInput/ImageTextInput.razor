@@ -1,0 +1,45 @@
+﻿<div class="container">
+    <img alt="@Alt" src="@Src" />
+    <form @onsubmit="Submit">
+        <input type="text" placeholder="@Placeholder" onchange="@onChange" on style="left: @Left%"/>    
+    </form>
+</div>
+
+@code {
+
+    [Parameter]
+    public int Left { get; set; } = 20;
+
+    [Parameter]
+    public string Alt { get; set; } = "Text Input Field";
+
+    [Parameter]
+    public string Src { get; set; } = "";
+
+    [Parameter]
+    public string Placeholder { get; set; } = "";
+    
+    [Parameter]
+    public EventCallback<string> OnTextChanged { get; set; }
+
+    [Parameter]
+    public bool RegisterOnEnter { get; set; } = true;
+
+    [Parameter]
+    public EventCallback OnEnter { get; set; }
+
+    private void Submit()
+    {
+        if (!RegisterOnEnter)
+        {
+            return;
+        }
+        OnEnter.InvokeAsync();
+    }
+    
+    private void onChange(ChangeEventArgs args)
+    {
+        OnTextChanged.InvokeAsync((string)args.Value);
+    }
+    
+}

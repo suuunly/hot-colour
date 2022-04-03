@@ -1,0 +1,40 @@
+﻿<div>
+    @for (var i = 0; i < _numberOfAvatars; i++)
+    {
+        var index = i;
+        <Avatar Src="@GetAvatarPath(i)" OnClick="@(() => Select(index))" Selected="@IsSelected(index)"/>
+    }
+    
+</div>
+
+@code {
+
+    private int _numberOfAvatars = 10;
+    
+    private int _selected = -1;
+    
+    [Parameter]
+    public EventCallback<string> OnSelected { get; set; }
+
+    private string GetAvatarPath(int index)
+    {
+        return $"media/avatars/avatar-{index + 1}.png";
+    }
+
+    private void Select(int avatarIndex)
+    {
+        if (_selected == avatarIndex)
+        {
+            return;
+        }
+        
+        _selected = avatarIndex;
+        OnSelected.InvokeAsync(GetAvatarPath(avatarIndex));
+    }
+
+    private bool IsSelected(int index)
+    {
+        return _selected == index;
+    }
+
+}

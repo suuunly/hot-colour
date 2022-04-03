@@ -1,0 +1,29 @@
+﻿<div>
+    <img disabled="@Disabled" alt="@Text" src="@Src" onclick="@Click"/>
+</div>
+
+@code {
+
+    [Parameter]
+    public bool Disabled { get; set; }
+    
+    [Parameter]
+    public string Text { get; set; }
+    
+    [Parameter]
+    public string Src { get; set; }
+
+    [Parameter]
+    public EventCallback OnClick { get; set; }
+
+    private void Click()
+    {
+        if (Disabled)
+        {
+            return;
+        }
+        
+        OnClick.InvokeAsync();
+    }
+    
+}

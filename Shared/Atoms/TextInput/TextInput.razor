@@ -1,0 +1,18 @@
+﻿<div>
+    <input type="text" placeholder="@Placeholder" onchange="@onChange" />    
+</div>
+
+@code {
+    
+    [Parameter]
+    public string Placeholder { get; set; }
+    
+    [Parameter]
+    public EventCallback<string> OnTextChanged { get; set; }
+    
+    private void onChange(ChangeEventArgs args)
+    {
+        OnTextChanged.InvokeAsync((string)args.Value);
+    }
+    
+}

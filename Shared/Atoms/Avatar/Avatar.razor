@@ -1,0 +1,27 @@
+﻿<img src="@Src" class="@SelectableClass() @SelectedClass()" onclick="@OnClick"/>
+
+@code {
+
+    [Parameter]
+    public bool Selectable { get; set; } = true;
+
+    [Parameter]
+    public bool Selected { get; set; }
+
+    [Parameter]
+    public string Src { get; set; } = "";
+    
+    [Parameter]
+    public EventCallback OnClick { get; set; }
+
+    private string SelectedClass()
+    {
+        return Selected ? "selected" : "";
+    }
+
+    private string SelectableClass()
+    {
+        return Selectable ? "clickable" : "";
+    }
+    
+}

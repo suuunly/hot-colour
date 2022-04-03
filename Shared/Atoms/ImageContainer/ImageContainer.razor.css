@@ -1,0 +1,15 @@
+﻿.container {
+    position:relative;
+}
+
+.container, img {
+    width: 100%;
+}
+
+.inner-container {
+    top: 10%;
+    left: 5%;
+    bottom: 10%;
+    right: 5%;
+    position:absolute;
+}

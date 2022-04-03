@@ -1,0 +1,15 @@
+﻿.container {
+    color: #fff;
+    font-weight: bold;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+p {
+    background-color: rgba(0,0,0,0.2);
+    border-radius: 5%;
+    margin-top: 0.3rem;
+    padding: 0.02rem 0.5rem 0.01rem 0.5rem;
+}

@@ -1,0 +1,51 @@
+﻿@page "/join/{SessionId}"
+
+@using HotColour.Services
+@using HotColour.Data.Game
+@layout LobbyLayout
+@inject SessionHub _sessionHub
+@inject NavigationManager _navigationManager
+
+
+<div>
+    <ImageTextInput RegisterOnEnter="false" Left="15" Alt="Name Input Field" Src="media/name-input-field.png" Placeholder="Name" OnTextChanged="OnNameChange"/>
+</div>
+<ImageContainer Src="media/avatar-background.png">
+    <AvatarSelector OnSelected="@OnSelectedAvatar" />
+</ImageContainer>
+<ImageButton Disabled="@DisabledJoinButton()" OnClick="JoinGame" Src="media/join-button.png"></ImageButton>
+
+@code {
+    
+    [Parameter]
+    public string SessionId { get; set; }
+    
+    private string _name = string.Empty;
+    private string _avatar = string.Empty;
+
+    private void OnNameChange(string newName)
+    {
+        _name = newName;
+    }
+
+    private void OnSelectedAvatar(string avatarSrc)
+    {
+        _avatar = avatarSrc;
+    }
+
+    private async Task JoinGame()
+    {
+        var newPlayer = new NewPlayer(_name, _avatar);
+        
+        var result = await _sessionHub.JoinGame(SessionId, newPlayer);
+        if (result.Successful)
+        {
+            _navigationManager.NavigateTo($"/session/{SessionId}");
+        }
+    }
+
+    private bool DisabledJoinButton()
+    {
+        return _name == string.Empty || _avatar == string.Empty;
+    }
+}

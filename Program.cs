@@ -1,13 +1,18 @@
-using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Web;
 using HotColour.Data;
+using HotColour.Services;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
-builder.Services.AddSingleton<WeatherForecastService>();
+builder.Services.AddSignalR();
+
+builder.Services.AddSingleton<SessionHub>();
+
 
 var app = builder.Build();
 
@@ -26,6 +31,7 @@ app.UseStaticFiles();
 app.UseRouting();
 
 app.MapBlazorHub();
+app.MapHub<SessionHub>("/socket");
 app.MapFallbackToPage("/_Host");
 
 app.Run();

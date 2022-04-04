@@ -1,11 +1,11 @@
-﻿namespace HotColour.Data
+﻿namespace HotColour.Data;
+
+public static class SessionCallbacks
 {
-    public static class SessionCallbacks
-    {
-        public const string JoinedGame = "JoinedGame";
-        public const string StartedGame = "StartedGame";
-        public const string LeftGame = "LeftGame";
-        public const string GuessedColour = "GuessedColour";
-        public const string RoundEnded = "Tick";
-    }
+    public const string JoinedGame = "JoinedGame";
+    public const string StartedGame = "StartedGame";
+    public const string LeftGame = "LeftGame";
+    public const string GuessedColour = "GuessedColour";
+    public const string RoundEnded = "RoundEnded";
+    public const string GameEnded = "GameEnded";
 }

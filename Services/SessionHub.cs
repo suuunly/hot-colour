@@ -1,119 +1,114 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
-using HotColour.Data;
+﻿using HotColour.Data;
 using HotColour.Data.Game;
 using HotColour.Data.GameLobby;
 using HotColour.Data.Response;
 using Microsoft.AspNetCore.SignalR;
-using Microsoft.Extensions.Logging;
 
-namespace HotColour.Services
+namespace HotColour.Services;
+
+public class SessionHub : Hub
 {
-    public class SessionHub : Hub
+    private readonly GameLobby _gameLobby;
+
+    private readonly ILogger<SessionHub> _logger;
+
+    public SessionHub(ILogger<SessionHub> logger)
     {
-        private readonly GameLobby _gameLobby;
+        _logger = logger;
+        _gameLobby = new GameLobby();
+    }
 
-        private readonly ILogger<SessionHub> _logger;
-
-        public SessionHub(ILogger<SessionHub> logger)
+    public DataResponse<HostResponse> HostGame()
+    {
+        var sessionId = _gameLobby.CreateSession();
+        if (sessionId == string.Empty)
         {
-            _logger = logger;
-            _gameLobby = new GameLobby();
+            return DataResponse<HostResponse>.Fail(TypeOfFailure.CouldNotCreateGame);
         }
 
-        public DataResponse<HostResponse> HostGame()
-        {
-            var sessionId = _gameLobby.CreateSession();
-            if (sessionId == string.Empty)
-            {
-                return DataResponse<HostResponse>.Fail(TypeOfFailure.CouldNotCreateGame);
-            }
+        return DataResponse<HostResponse>.Success(new HostResponse(sessionId));
+    }
 
-            return DataResponse<HostResponse>.Success(new HostResponse(sessionId));
+    public async Task<DataResponse<JoinResponse>> JoinGame(string sessionId, NewPlayer newPlayer,
+        CancellationToken cancellationToken = default)
+    {
+        if (!_gameLobby.TryGetSession(sessionId, out var session))
+        {
+            return DataResponse<JoinResponse>.Fail(TypeOfFailure.CouldNotFindGame);
         }
 
-        public async Task<DataResponse<JoinResponse>> JoinGame(string sessionId, NewPlayer newPlayer, CancellationToken cancellationToken = default)
+        // TODO: Don't allow more than n players (maybe with a dictionary?)
+        if (!session.AddPlayer(newPlayer, out var playerId))
         {
-            if (!_gameLobby.TryGetSession(sessionId, out GameSession session))
-            {
-                return DataResponse<JoinResponse>.Fail(TypeOfFailure.CouldNotFindGame);
-            }
-            
-            // TODO: Don't allow more than n players (maybe with a dictionary?)
-            if (!session.AddPlayer(newPlayer, out string playerId))
-            {
-                return DataResponse<JoinResponse>.Fail(TypeOfFailure.CouldNotJoinGame);
-            }
-
-            try
-            {
-                await Groups.AddToGroupAsync(Context.ConnectionId, sessionId, cancellationToken);
-                await Clients.Group(sessionId).SendAsync(SessionCallbacks.JoinedGame, cancellationToken);
-
-                return DataResponse<JoinResponse>.Success(new JoinResponse(playerId));
-            }
-            catch (Exception e)
-            {
-                _logger.LogError(e, "Unexpected error when {Player} tried to join game {Session}", newPlayer, sessionId);
-                session.RemovePlayer(playerId);
-                return DataResponse<JoinResponse>.Fail(TypeOfFailure.Unexpected);
-            }
+            return DataResponse<JoinResponse>.Fail(TypeOfFailure.CouldNotJoinGame);
         }
 
-        public async Task<DataResponse> StartGame(string sessionId, CancellationToken cancellationToken = default)
+        try
         {
-            if (!_gameLobby.TryGetSession(sessionId, out GameSession session))
-            {
-                return DataResponse.Fail(TypeOfFailure.CouldNotFindGame);
-            }
+            await Groups.AddToGroupAsync(Context.ConnectionId, sessionId, cancellationToken);
+            await Clients.Group(sessionId).SendAsync(SessionCallbacks.JoinedGame, cancellationToken);
 
-            var startedResult = session.StartGame(async () =>
-            {
-                await Clients.Group(sessionId).SendAsync(SessionCallbacks.RoundEnded, cancellationToken);
-            });
-                
-            if (startedResult)
-            {
-                session.GenerateNewColourTarget();
-                await Clients.Group(sessionId).SendAsync(SessionCallbacks.StartedGame, cancellationToken);
-            }
+            return DataResponse<JoinResponse>.Success(new JoinResponse(playerId));
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Unexpected error when {Player} tried to join game {Session}", newPlayer, sessionId);
+            session.RemovePlayer(playerId);
+            return DataResponse<JoinResponse>.Fail(TypeOfFailure.Unexpected);
+        }
+    }
 
-            return startedResult 
-                ? DataResponse.Success() 
-                : DataResponse.Fail(TypeOfFailure.NotEnoughPlayers);
+    public async Task<DataResponse> StartGame(string sessionId, CancellationToken cancellationToken = default)
+    {
+        if (!_gameLobby.TryGetSession(sessionId, out var session))
+        {
+            return DataResponse.Fail(TypeOfFailure.CouldNotFindGame);
         }
 
-        public List<Player> GetPlayers(string sessionId)
+        var startedResult = session.StartGame(
+            async () => { await Clients.Group(sessionId).SendAsync(SessionCallbacks.RoundEnded, cancellationToken); },
+            async () => { await Clients.Group(sessionId).SendAsync(SessionCallbacks.GameEnded, cancellationToken); });
+
+        if (startedResult)
         {
-            return _gameLobby.TryGetSession(sessionId, out GameSession session)
-                ? session.GetPlayers()
-                : new List<Player>();
+            session.GenerateNewColourTarget();
+            await Clients.Group(sessionId).SendAsync(SessionCallbacks.StartedGame, cancellationToken);
         }
 
-        public DataResponse<GameSessionData> GameSessionData(string sessionId)
+        return startedResult
+            ? DataResponse.Success()
+            : DataResponse.Fail(TypeOfFailure.NotEnoughPlayers);
+    }
+
+    public List<Player> GetPlayers(string sessionId)
+    {
+        return _gameLobby.TryGetSession(sessionId, out var session)
+            ? session.GetPlayers()
+            : new List<Player>();
+    }
+
+    public DataResponse<GameSessionData> GameSessionData(string sessionId)
+    {
+        return _gameLobby.TryGetSession(sessionId, out var session)
+            ? DataResponse<GameSessionData>.Success(session.GetGameData())
+            : DataResponse<GameSessionData>.Fail(TypeOfFailure.CouldNotFindGame);
+    }
+
+    public async Task<DataResponse> GuessColour(string sessionId, HueColour colour,
+        CancellationToken cancellationToken = default)
+    {
+        if (!_gameLobby.TryGetSession(sessionId, out var session))
         {
-            return _gameLobby.TryGetSession(sessionId, out GameSession session) 
-                ? DataResponse<GameSessionData>.Success(session.GetGameData())
-                : DataResponse<GameSessionData>.Fail(TypeOfFailure.CouldNotFindGame);
+            return DataResponse.Fail(TypeOfFailure.CouldNotFindGame);
         }
 
-        public async Task<DataResponse> GuessColour(string sessionId, HueColour colour, CancellationToken cancellationToken = default)
+        if (!session.GuessColour(colour))
         {
-            if(!_gameLobby.TryGetSession(sessionId, out GameSession session))
-            {
-                return DataResponse.Fail(TypeOfFailure.CouldNotFindGame);
-            }
-            
-            if (!session.GuessColour(colour))
-            {
-                return DataResponse.Fail(TypeOfFailure.GameNotStarted);
-            }
-            
-            await Clients.Group(sessionId).SendAsync(SessionCallbacks.GuessedColour, cancellationToken);
-
-            return DataResponse.Success();
+            return DataResponse.Fail(TypeOfFailure.GameNotStarted);
         }
+
+        await Clients.Group(sessionId).SendAsync(SessionCallbacks.GuessedColour, cancellationToken);
+
+        return DataResponse.Success();
     }
 }

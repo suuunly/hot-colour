@@ -9,6 +9,7 @@ namespace HotColour.Data.Game
         string PlayerIdsTurn, 
         HueColour TargetColour,
         DateTime TimeWhenRoundStarted,
-        DateTime TimeWhenRoundEnds
+        DateTime TimeWhenRoundEnds,
+        HueColour LastSelectedColour
     );
 }

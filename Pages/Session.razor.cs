@@ -2,7 +2,7 @@
 using HotColour.Data.Response;
 using HotColour.Services;
 using HotColour.Shared;
-using HotColour.Shared.Atoms.Refresher;
+using HotColour.Shared.Organisms;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
@@ -16,7 +16,7 @@ public partial class Session : IDisposable
     private DataResponse<GameSessionData> _game;
     private IJSObjectReference _module;
 
-    private Refresher _refresher;
+    private CircularTimer _visualTimer;
 
     [Inject] private IJSRuntime Js { get; set; }
 
@@ -28,6 +28,7 @@ public partial class Session : IDisposable
     [CascadingParameter] private SessionManager Manager { get; set; }
 
     [Parameter] public string SessionId { get; set; } = string.Empty;
+    [Parameter] public string PlayerId { get; set; } = string.Empty;
 
 
     private string TargetColour
@@ -69,7 +70,7 @@ public partial class Session : IDisposable
         Manager.OnLeft(RefreshPlayerList);
         Manager.OnStarted(OnStarted);
         Manager.OnGuessedColour(RefreshPlayerList);
-        Manager.OnRoundEnded(RefreshPlayerList);
+        Manager.OnRoundEnded(OnRoundEnded);
         Manager.OnEnded(OnGameEnded);
     }
 
@@ -88,20 +89,19 @@ public partial class Session : IDisposable
     private void OnGameEnded()
     {
         RefreshPlayerList();
-        _refresher.Stop();
+        _visualTimer.Stop();
     }
 
     private void OnRoundEnded()
     {
         RefreshPlayerList();
-        _refresher.Stop();
-        _refresher.Start();
+        _visualTimer.Stop().ContinueWith(t => _visualTimer.Start());
     }
 
     private void OnStarted()
     {
         RefreshPlayerList();
-        _refresher.Start();
+        _visualTimer.Start();
     }
 
     private void RefreshPlayerList()
@@ -143,11 +143,10 @@ public partial class Session : IDisposable
         return _game.Data.PlayerIdsTurn == playerId;
     }
 
-
     [JSInvokable]
     public async Task OnSelectedColour(int h, int s, int l)
     {
-        var result = await SessionHub.GuessColour(SessionId, new HueColour(h, s, l));
+        var result = await SessionHub.GuessColour(SessionId, new HueColour(h, s, l), PlayerId);
         if (result.Error == TypeOfFailure.CouldNotFindGame)
         {
             NavigationManager.NavigateTo("/");

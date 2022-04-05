@@ -1,4 +1,4 @@
-﻿@page "/session/{SessionId}"
+﻿@page "/session/{SessionId}/{PlayerId}"
 @using HotColour.Data.Game
 @layout LobbyLayout
 
@@ -15,10 +15,7 @@
 </div>
 <div class="container">
     <div class="free-form timer">
-        <Refresher @ref="_refresher">
-            <CircularLoadingBar Radius="255" CurrentPercentage="@CurrentPercentageLeft()"/>
-        </Refresher>
-
+        <CircularTimer @ref="_visualTimer" Radius="255" GetPercentage="@CurrentPercentageLeft"/>
     </div>
     <div id="picker" class="free-form wheel"></div>
 

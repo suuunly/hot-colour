@@ -4,23 +4,32 @@ namespace HotColour.Data.Game;
 
 public class GameSession
 {
-    private static readonly TimeSpan RoundDuration = new(0, 0, 0, 30);
+    private const float MinimumAccuracyRequired = 0.6f;
+    private const float MaxTimeAdded = 3f;
+    private static readonly TimeSpan RoundDuration = new(0, 0, 0, 10);
 
-    private readonly Dictionary<string, Player> _players;
+    private readonly List<Player> _players;
+
     private readonly Random _rnd;
 
     private readonly CancellationTokenSource _roundEndCancellationTokenSource;
+
+    // private Timer _timer;
+    private readonly RoundEndDelay _roundEndTimer;
     private GameState _currentGameState;
     private int _currentPlayerTurnIndex;
+    private Func<Task> _gameEndedCallback;
+    private HueColour _lastSelectedColour = new(0, 100, 100);
+    private List<Player> _playerInstances;
+    private Func<Task> _roundEndedCallback;
 
-    private List<string> _playerOrder;
     private HueColour _targetColour;
-
 
     public GameSession()
     {
         _currentPlayerTurnIndex = 0;
-        _players = new Dictionary<string, Player>();
+        _players = new List<Player>();
+        _playerInstances = new List<Player>();
 
         _currentGameState = GameState.WaitingForPlayers;
 
@@ -29,39 +38,34 @@ public class GameSession
 
         _roundEndCancellationTokenSource = new CancellationTokenSource();
 
+        _roundEndTimer = new RoundEndDelay(RoundDuration, OnRoundEnded);
+
         GenerateNewColourTarget();
     }
 
-    private DateTime RoundTerminationTime { get; set; }
-    private DateTime RoundStartedTime { get; set; }
-
-    private string PlayerIdOfCurrentPlayer => _playerOrder[_currentPlayerTurnIndex];
+    private string PlayerIdOfCurrentPlayer => _playerInstances[_currentPlayerTurnIndex].Id;
 
     public bool AddPlayer(NewPlayer newPlayer, out string playerId)
     {
         playerId = Guid.NewGuid().ToString();
 
         var (name, avatar) = newPlayer;
+        _players.Add(new Player(playerId, name, avatar));
 
-        _players.TryAdd(playerId, new Player(playerId, name, avatar));
-        _playerOrder = _players.Select(p => p.Value.Id).ToList();
+        _playerInstances = _players.ToList();
 
         return true;
     }
 
     public void RemovePlayer(string playerId)
     {
-        if (!_players.Remove(playerId))
-        {
-            return;
-        }
-
-        _playerOrder = _players.Select(p => p.Value.Id).ToList();
+        _players.RemoveAll(p => p.Id == playerId);
+        _playerInstances = _players.ToList();
     }
 
     public List<Player> GetPlayers()
     {
-        return _players.Select(p => p.Value).ToList();
+        return _playerInstances;
     }
 
     private void NextPlayer()
@@ -72,60 +76,53 @@ public class GameSession
         {
             _currentPlayerTurnIndex = 0;
         }
+
+        _roundEndCancellationTokenSource.Cancel();
     }
 
-    public bool StartGame(Func<Task> onRoundEnded, Func<Task> onGameEnded)
+    public bool StartGame()
     {
         if (_players.Count < 2)
         {
             return false;
         }
 
-        _playerOrder.Shuffle();
+        _playerInstances = _players.Select(player => player with {IsDead = false}).ToList();
+        _playerInstances.Shuffle();
         _currentPlayerTurnIndex = 0;
 
         _currentGameState = GameState.GameIsActive;
 
-
-        // TODO: Reset Delay After Move
-
-        // TODO: Reset Delay after Round ended
-        StartNewRound(onRoundEnded, onGameEnded);
+        _roundEndTimer.Start();
 
         return true;
     }
 
-    private void StartNewRound(Func<Task> roundEndedCallback, Func<Task> gameEndedCallback)
+    private void OnRoundEnded()
     {
-        RoundStartedTime = DateTime.Now;
-        RoundTerminationTime = DateTime.Now + RoundDuration;
-        var totalTime = (RoundTerminationTime - RoundStartedTime).TotalSeconds;
+        var currentPlayer = _playerInstances[_currentPlayerTurnIndex];
 
+        var playerDied = currentPlayer with {IsDead = true};
+        _playerInstances[_currentPlayerTurnIndex] = playerDied;
 
-        var cancellationToken = _roundEndCancellationTokenSource.Token;
-        Task.Delay(TimeSpan.FromSeconds(totalTime), cancellationToken).ContinueWith(t =>
+        NextPlayer();
+
+        _roundEndedCallback();
+
+        if (_playerInstances.Count(p => !p.IsDead) > 1)
         {
-            if (!_players.TryGetValue(PlayerIdOfCurrentPlayer, out var player))
-            {
-                return;
-            }
+            _roundEndTimer.Start();
+            return;
+        }
 
-            var playerDied = player with {IsDead = true};
-            _players[PlayerIdOfCurrentPlayer] = playerDied;
+        _currentGameState = GameState.GameEnded;
+        _gameEndedCallback();
+    }
 
-            NextPlayer();
-
-            roundEndedCallback();
-
-            if (_players.Count(p => p.Value.IsDead) >= 2)
-            {
-                StartNewRound(roundEndedCallback, gameEndedCallback);
-                return;
-            }
-
-            _currentGameState = GameState.GameEnded;
-            gameEndedCallback();
-        }, cancellationToken);
+    public void SetRoundCallbacks(Func<Task> roundEndedCallback, Func<Task> gameEndedCallback)
+    {
+        _roundEndedCallback = roundEndedCallback;
+        _gameEndedCallback = gameEndedCallback;
     }
 
     public void GenerateNewColourTarget()
@@ -143,17 +140,25 @@ public class GameSession
             _currentGameState,
             PlayerIdOfCurrentPlayer,
             _targetColour,
-            RoundStartedTime,
-            RoundTerminationTime
+            _roundEndTimer.StartTime,
+            _roundEndTimer.RoundEndTime,
+            _lastSelectedColour
         );
     }
 
-    public bool GuessColour(HueColour colour)
+    public bool GuessColour(string playerId, HueColour colour)
     {
         if (_currentGameState != GameState.GameIsActive)
         {
             return false;
         }
+
+        if (PlayerIdOfCurrentPlayer != playerId)
+        {
+            return false;
+        }
+
+        _lastSelectedColour = colour;
 
         var (h1, s1, l1) = _targetColour;
         var (h2, s2, l2) = colour;
@@ -166,14 +171,19 @@ public class GameSession
         var distance = Math.Sqrt(Math.Pow(h, 2) + (Math.Pow(s, 2) + Math.Pow(l, 2)));
         var percentage = distance / Math.Sqrt(Math.Pow(360, 2) + Math.Pow(100, 2) + Math.Pow(100, 2));
 
-        var accuracy = (1.0f - percentage) * 100.0f;
+        var accuracy = 1.0f - percentage;
 
-        // todo: use the accuracy
-        RoundTerminationTime = RoundTerminationTime.Add(new TimeSpan(0, 0, 20));
+        // if you're below 60%, then it is not considered.
+        // Otherwise the max amount added is based on your accuracy
+        var addedTime = accuracy > MinimumAccuracyRequired
+            ? MaxTimeAdded * accuracy
+            : 0;
 
         GenerateNewColourTarget();
 
         NextPlayer();
+
+        _roundEndTimer.AddTime(TimeSpan.FromSeconds(addedTime));
 
         return true;
     }

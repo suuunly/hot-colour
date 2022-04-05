@@ -1,0 +1,57 @@
+﻿<svg width="auto" height="auto" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="50%" cy="50%" r="@Radius" class="inner-circle" stroke-dasharray="@_dashArray" stroke-dashoffset="0"></circle>
+    <circle id="time-left" cx="50%" cy="50%" r="@Radius" class="outer-circle" stroke-dasharray="@_dashArray" stroke-dashoffset="0"></circle>
+</svg>
+
+@code {
+
+    [Inject]
+    private IJSRuntime Js { get; set; }
+
+    [Parameter]
+    public float Radius { get; set; } = 255;
+
+    [Parameter]
+    public Func<float> GetPercentage { get; set; }
+
+    private float _dashArray;
+    private IJSObjectReference _module;
+    private DotNetObjectReference<CircularTimer>? _dotnetHelper;
+
+
+    protected override void OnParametersSet()
+    {
+        _dashArray = Radius * 6.282352941176471f;
+        base.OnParametersSet();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _module = await Js.InvokeAsync<IJSObjectReference>("import", "/js/CircularTimer.js");
+            _dotnetHelper = DotNetObjectReference.Create(this);
+        }
+
+        await base.OnAfterRenderAsync(firstRender);
+    }
+
+    [JSInvokable]
+    public Task<float> GetRefreshData()
+    {
+        var relativeToMaxDashArray = GetPercentage() / 100f * _dashArray;
+        return Task.FromResult(relativeToMaxDashArray);
+    }
+
+
+    public async Task Start()
+    {
+        await _module.InvokeVoidAsync("start", _dotnetHelper, "time-left", "stroke-dashoffset");
+    }
+
+    public async Task Stop()
+    {
+        await _module.InvokeVoidAsync("stop");
+    }
+
+}

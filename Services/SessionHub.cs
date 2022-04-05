@@ -26,6 +26,12 @@ public class SessionHub : Hub
             return DataResponse<HostResponse>.Fail(TypeOfFailure.CouldNotCreateGame);
         }
 
+        var session = _gameLobby.GetSession(sessionId);
+        session.SetRoundCallbacks(
+            async () => { await Clients.Group(sessionId).SendAsync(SessionCallbacks.RoundEnded); },
+            async () => { await Clients.Group(sessionId).SendAsync(SessionCallbacks.GameEnded); }
+        );
+
         return DataResponse<HostResponse>.Success(new HostResponse(sessionId));
     }
 
@@ -65,9 +71,7 @@ public class SessionHub : Hub
             return DataResponse.Fail(TypeOfFailure.CouldNotFindGame);
         }
 
-        var startedResult = session.StartGame(
-            async () => { await Clients.Group(sessionId).SendAsync(SessionCallbacks.RoundEnded, cancellationToken); },
-            async () => { await Clients.Group(sessionId).SendAsync(SessionCallbacks.GameEnded, cancellationToken); });
+        var startedResult = session.StartGame();
 
         if (startedResult)
         {
@@ -94,7 +98,7 @@ public class SessionHub : Hub
             : DataResponse<GameSessionData>.Fail(TypeOfFailure.CouldNotFindGame);
     }
 
-    public async Task<DataResponse> GuessColour(string sessionId, HueColour colour,
+    public async Task<DataResponse> GuessColour(string sessionId, HueColour colour, string playerId,
         CancellationToken cancellationToken = default)
     {
         if (!_gameLobby.TryGetSession(sessionId, out var session))
@@ -102,7 +106,7 @@ public class SessionHub : Hub
             return DataResponse.Fail(TypeOfFailure.CouldNotFindGame);
         }
 
-        if (!session.GuessColour(colour))
+        if (!session.GuessColour(playerId, colour))
         {
             return DataResponse.Fail(TypeOfFailure.GameNotStarted);
         }

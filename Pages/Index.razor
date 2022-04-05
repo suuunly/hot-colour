@@ -22,33 +22,33 @@
 
     private string _sessionId = string.Empty;
     private bool _showPopup;
-    
+
     private async Task HostGame()
     {
         var result = _sessionHub.HostGame();
         if (result.Successful)
         {
-            _navigationManager.NavigateTo($"/join/{result.Data.SessionId}");    
+            _navigationManager.NavigateTo($"/join/{result.Data.SessionId}");
         }
     }
 
     private void OpenPopUp()
     {
         _showPopup = true;
-    }   
-    
+    }
+
     private void ClosePopUp()
     {
         _showPopup = false;
     }
-    
+
     private void JoinGame()
     {
         if (_sessionId == string.Empty)
         {
             return;
         }
-        
+
         _navigationManager.NavigateTo($"/join/{_sessionId}");
     }
 
@@ -56,5 +56,5 @@
     {
         _sessionId = value;
     }
-    
+
 }

@@ -54,3 +54,15 @@ Upon doing so will add a a bit of additional time to the countdown. The amount w
 This keeps proceeding as such until the timer reaches 0. The one who's turn it was when the timer ends is terminated from the game.
 
 The game ends when there is only a single player left.
+
+
+## Bugs
+Due to lack of time these were the missing bugs and/or features that were never considered:
+- Announce the winner after the game ends
+- Don't allow more than 10 players
+- Skip the dead player's turn
+- Visually show what colour the other player selected
+- Increase the speed at which the timer goes down for every turn
+
+- Fix occasional syncing issues when joining a game
+

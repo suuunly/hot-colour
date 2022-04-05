@@ -63,6 +63,7 @@ Due to lack of time these were the missing bugs and/or features that were never 
 - Skip the dead player's turn
 - Visually show what colour the other player selected
 - Increase the speed at which the timer goes down for every turn
+- End the visual frontend timer when the game ends
 
 - Fix occasional syncing issues when joining a game
 
